@@ -23,24 +23,18 @@ def index():
 
 # @app.post('/predict')
 # def predict_car_type(data:DigitImage):
+#     image = Image.open(io.BytesIO(data.image)).convert("L")
+#     processed_img = preprocess_image(image)
 
 
 @app.get("/check")
 def check_image_preprocessing():
     path = "../public/digit.png"
     processed_img = preprocess_image(path)
+    prob = model.predict(processed_img)
+    pred = prob.argmax(axis=1)
 
-    # Create a Matplotlib figure and plot the processed image
-    fig, ax = plt.subplots()
-    ax.imshow(np.squeeze(processed_img))
-
-    # Save the figure to a BytesIO buffer
-    buf = io.BytesIO()
-    fig.savefig(buf, format="png", bbox_inches="tight", pad_inches=0)
-    plt.close(fig)  # Close the figure to free memory
-    buf.seek(0)
-
-    return StreamingResponse(buf, media_type="image/png")
+    return {"prediction": int(pred[0])}
 
 
 def preprocess_image(image_path):
