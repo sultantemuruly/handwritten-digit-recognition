@@ -1,6 +1,8 @@
 import uvicorn
-from fastapi import FastAPI
+from fastapi import FastAPI, File, UploadFile
 from fastapi.responses import StreamingResponse
+
+import os
 import io
 
 from keras.models import load_model
@@ -12,6 +14,9 @@ from digit_image import DigitImage
 
 app = FastAPI()
 
+UPLOAD_DIR = "uploads"
+os.makedirs(UPLOAD_DIR, exist_ok=True)
+
 model_path = "../deeplearning-model/model.h5"
 model = load_model(model_path)
 
@@ -21,29 +26,41 @@ def index():
     return {"message": "Cars Recommender ML API"}
 
 
-# @app.post('/predict')
-# def predict_car_type(data:DigitImage):
-#     image = Image.open(io.BytesIO(data.image)).convert("L")
-#     processed_img = preprocess_image(image)
+@app.post("/predict")
+async def predict_digit_type(file: UploadFile = File(...)):
+    if file.content_type != "image/png":
+        return {"error": "Only PNG files are allowed"}
 
+    # Read and process the uploaded image
+    image_bytes = await file.read()
+    image = Image.open(io.BytesIO(image_bytes)).convert("L")
 
-@app.get("/check")
-def check_image_preprocessing():
-    path = "../public/digit.png"
-    processed_img = preprocess_image(path)
+    processed_img = preprocess_image(image)
+
+    # Make prediction
     prob = model.predict(processed_img)
     pred = prob.argmax(axis=1)
 
     return {"prediction": int(pred[0])}
 
 
-def preprocess_image(image_path):
-    img = Image.open(image_path).convert("L")
+@app.get("/check")
+def check_image_preprocessing():
+    path = "../public/digit.png"
+    img = Image.open(path).convert("L")
     if not img:
         print("!Image Not Found!")
         return None
 
-    img = img.resize(
+    processed_img = preprocess_image(img)
+    prob = model.predict(processed_img)
+    pred = prob.argmax(axis=1)
+
+    return {"prediction": int(pred[0])}
+
+
+def preprocess_image(image: Image.Image):
+    img = image.resize(
         (28, 28), Image.Resampling.LANCZOS
     )  # Resize image to 28x28 pixels (if not already)
     img_array = np.array(img)
