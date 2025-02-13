@@ -46,7 +46,7 @@ async def predict_digit_type(file: UploadFile = File(...)):
 
 @app.get("/check")
 def check_image_preprocessing():
-    path = "../public/digit.png"
+    path = "../public/5.png"
     img = Image.open(path).convert("L")
     if not img:
         print("!Image Not Found!")
